@@ -51,13 +51,14 @@ def comparar_musica(spectogram1, spectogram2):
         return (spectogram1 * 100) / spectogram2
 
 def guardar_comparacoes(lista, nome_musica):
+    """Guardas as recomendações em relação a uma música em um txt"""
 
     arquivo = open("Recomendacoes_%s.txt" %nome_musica, "w")
     if os.stat("Recomendacoes_%s.txt" %nome_musica).st_size == 0:
         arquivo.write("Melhores recomendações para a música %s\n" %nome_musica)
     for i in range(len(lista)):
         if lista[i][0] != nome_musica:
-            arquivo.write("\n%s - %.2f" %(lista[i][0], lista[i][1]))
+            arquivo.write("\n%s = %.2f" %(lista[i][0], lista[i][1]))
 
 def ler_dados(valor_comparar, nome_musica):
     "Recebe o valor de uma música e compara com todas que estão no dataset"
@@ -71,7 +72,15 @@ def ler_dados(valor_comparar, nome_musica):
     valores.sort(key=lambda x: x[1], reverse=True)
     guardar_comparacoes(valores, nome_musica)
 
-def main():
+def apagar_musicas():
+    """Apaga as musicas de formato .wav na pasta atual"""
+
+    for file in os.listdir(os.getcwd()):
+        if file.endswith(".wav"):
+            os.remove(file)
+
+def criar_banco_musica():
+    """Le todas as músicas na pasta atual e guarda o valor de cada uma"""
 
     for file in os.listdir(os.getcwd()):
         if file.endswith(".mp3"):
@@ -79,9 +88,12 @@ def main():
             ler_musica(nome_musica)
             spec1 = analise_musica(nome_musica)
             guardar_info(spec1, nome_musica)
+    apagar_musicas()
 
-    for file in os.listdir(os.getcwd()):
-        if file.endswith(".wav"):
-            os.remove(file)
+def recomendar_musicas(musica):
+    """Recebe uma música e busca no banco de dados as mais parecidas"""
 
-main()
+    ler_musica(musica)
+    spec1 = analise_musica(musica)
+    ler_dados(spec1, musica)
+    apagar_musicas()
