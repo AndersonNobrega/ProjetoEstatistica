@@ -31,7 +31,7 @@ def inserir_dados(nova_musica, novo_valor):
     conn.commit()
 
 def fechar_banco():
-    """Termina a coneção com o banco de dados"""
+    """Termina a conexão com o banco de dados"""
     
     cursor.close()
     conn.close()
