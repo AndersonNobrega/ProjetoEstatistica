@@ -20,13 +20,19 @@ def ler_musica(musica, formato):
     subprocess.call(['ffmpeg', '-i', '%s%s' %(musica, formato),'-ac', '1','-ab', '320k','%s.wav' %musica])
 
 def inicializa_tabela():
+    """Inicializa o banco de dados caso não exista"""
+    
     cursor.execute("CREATE TABLE IF NOT EXISTS musicas (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, musica TEXT, valor FLOAT)")
 
 def inserir_dados(nova_musica, novo_valor):
+    """Insere os dados passados no banco de dados"""
+    
     cursor.execute("INSERT INTO musicas(musica, valor) VALUES(?, ?)", (nova_musica, float(novo_valor)))
     conn.commit()
 
 def fechar_banco():
+    """Termina a coneção com o banco de dados"""
+    
     cursor.close()
     conn.close()
 
