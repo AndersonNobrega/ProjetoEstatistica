@@ -22,7 +22,8 @@ def ler_musica(musica, formato):
 def inicializa_tabela():
     """Inicializa o banco de dados caso não exista"""
     
-    cursor.execute("CREATE TABLE IF NOT EXISTS musicas (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, musica TEXT, valor FLOAT)")
+    cursor.execute("CREATE TABLE IF NOT EXISTS musicas "
+                   "(musica TEXT PRIMARY KEY , valor FLOAT)")
 
 def inserir_dados(nova_musica, novo_valor):
     """Insere os dados passados no banco de dados"""
@@ -41,8 +42,11 @@ def plotar(spectogram, times, frequencies):
 
     spectogram = 10 * np.log10(spectogram)
 
-    plt.pcolormesh(times, frequencies, spectogram)
-    plt.show()
+    try:
+        plt.pcolormesh(times, frequencies, spectogram)
+        plt.show()
+    except:
+        print("Não foi possivel plotar o gráfico")
 
 def analise_musica(musica):
     """Le o arquivo wav da musica e retira as informações"""
@@ -84,17 +88,20 @@ def ler_dados(valor_comparar, nome_musica):
     valores.sort(key=lambda x: x[1], reverse=True)
     guardar_comparacoes(valores, nome_musica)
 
-def imprimir_dados():
-    cursor.execute('SELECT * FROM musicas')
-    for linha in cursor.fetchall():
-        print(linha)
-
 def apagar_musicas():
     """Apaga as musicas de formato .wav na pasta atual"""
 
     for file in os.listdir(os.getcwd()):
         if (file.endswith(".wav")) or (file.endswith(".mp3")) or (file.endswith(".flac")):
             os.remove(file)
+
+def criar_dataframe():
+    """Le os dados do banco SQL, cria um dataframe, e organiza os dados"""
+
+    cursor.execute('SELECT * FROM musicas')
+    tabela_musicas = pd.DataFrame(cursor.fetchall(),
+                                  columns=["Músicas", "Valores"])
+    return tabela_musicas.sort_values(["Músicas"])
 
 def criar_banco_musica():
     """Le todas as músicas na pasta atual e guarda o valor de cada uma"""
@@ -114,3 +121,7 @@ def recomendar_musicas(musica):
     spec1 = analise_musica(musica)
     ler_dados(spec1, musica)
     apagar_musicas()
+
+dataframe_musicas = criar_dataframe()
+
+print(dataframe_musicas)
