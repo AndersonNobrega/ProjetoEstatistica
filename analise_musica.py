@@ -7,8 +7,9 @@ try:
     import matplotlib.pyplot as plt
     import subprocess
     import pandas as pd
-except ImportError:
-    print("Import Error")
+    import pytube
+except ImportError as error:
+    print("Import Error : %s" %error)
     quit(1)
 
 conn = sqlite3.connect("musicas.db")
@@ -23,12 +24,15 @@ def inicializa_tabela():
     """Inicializa o banco de dados caso não exista"""
     
     cursor.execute("CREATE TABLE IF NOT EXISTS musicas "
-                   "(musica TEXT PRIMARY KEY , valor FLOAT)")
+                   "(musica TEXT PRIMARY KEY NOT NULL , valor FLOAT NOT NULL, UNIQUE (musica))")
 
 def inserir_dados(nova_musica, novo_valor):
     """Insere os dados passados no banco de dados"""
-    
-    cursor.execute("INSERT INTO musicas(musica, valor) VALUES(?, ?)", (nova_musica, float(novo_valor)))
+
+    try:
+        cursor.execute("INSERT INTO musicas(musica, valor) VALUES(?, ?)", (nova_musica, float(novo_valor)))
+    except sqlite3.IntegrityError:
+        print("Música ja se encontra no banco de dados.")
     conn.commit()
 
 def fechar_banco():
@@ -46,7 +50,7 @@ def plotar(spectogram, times, frequencies):
         plt.pcolormesh(times, frequencies, spectogram)
         plt.show()
     except:
-        print("Não foi possivel plotar o gráfico")
+        print("Não foi possivel plotar o gráfico.")
 
 def analise_musica(musica):
     """Le o arquivo wav da musica e retira as informações"""
@@ -92,7 +96,7 @@ def apagar_musicas():
     """Apaga as musicas de formato .wav na pasta atual"""
 
     for file in os.listdir(os.getcwd()):
-        if (file.endswith(".wav")) or (file.endswith(".mp3")) or (file.endswith(".flac")):
+        if (file.endswith(".wav")) or (file.endswith(".mp4")) or (file.endswith(".flac")):
             os.remove(file)
 
 def criar_dataframe():
@@ -107,12 +111,23 @@ def criar_banco_musica():
     """Le todas as músicas na pasta atual e guarda o valor de cada uma"""
 
     for file in os.listdir(os.getcwd()):
-        if (file.endswith(".mp3")) or (file.endswith(".flac")):
+        if (file.endswith(".mp3")) or (file.endswith(".flac") or (file.endswith(".mp4"))):
             nome_musica, formato_musica = os.path.splitext(os.path.basename(file))
             ler_musica(nome_musica, formato_musica)
             spec1 = analise_musica(nome_musica)
             inserir_dados(nome_musica, spec1)
     apagar_musicas()
+
+def buscar_musica(musica_procurar):
+    """Busca uma música dentro do banco de dados"""
+
+    cursor.execute('SELECT * FROM musicas')
+    for linha in cursor.fetchall():
+        if linha[0] == musica_procurar:
+            print("Música encontrada: %s" %musica_procurar)
+            return
+    print("Música não encontrada.")
+
 
 def recomendar_musicas(musica):
     """Recebe uma música e busca no banco de dados as mais parecidas"""
@@ -122,6 +137,24 @@ def recomendar_musicas(musica):
     ler_dados(spec1, musica)
     apagar_musicas()
 
-dataframe_musicas = criar_dataframe()
+def baixar_musica(link):
+    """Recebe um link do youtube e baixa na melhor qualidade encontrada"""
 
-print(dataframe_musicas)
+    qualidades = np.array(["1080p", "720p", "480p", "360p", "240p", "144p"])
+    index = 0
+
+    try:
+        yt = pytube.YouTube(link)
+    except AttributeError:
+        print("Link não encontrado.")
+    else:
+        while True:
+            try:
+                video = yt.get(extension="mp4", resolution=qualidades[index])
+                break
+            except pytube.exceptions.DoesNotExist:
+                index += 1
+
+        video.download(os.getcwd())
+
+buscar_musica("Pink Floyd - Money")
