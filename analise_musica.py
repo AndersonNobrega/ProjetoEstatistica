@@ -8,6 +8,9 @@ try:
     import subprocess
     import pandas as pd
     import pytube
+    from sklearn.model_selection import train_test_split
+    from sklearn.neighbors import KNeighborsClassifier
+    from sklearn.externals import joblib
 except ImportError as error:
     print("Import Error : %s" %error)
     quit(1)
@@ -32,7 +35,7 @@ def inserir_dados(nova_musica, novo_valor):
     try:
         cursor.execute("INSERT INTO musicas(musica, valor) VALUES(?, ?)", (nova_musica, float(novo_valor)))
     except sqlite3.IntegrityError:
-        print("Música ja se encontra no banco de dados.")
+        print("Música ja se encontra no banco de dados.\n")
     conn.commit()
 
 def fechar_banco():
@@ -50,12 +53,16 @@ def plotar(spectogram, times, frequencies):
         plt.pcolormesh(times, frequencies, spectogram)
         plt.show()
     except:
-        print("Não foi possivel plotar o gráfico.")
+        print("Não foi possivel plotar o gráfico.\n")
 
 def analise_musica(musica):
     """Le o arquivo wav da musica e retira as informações"""
 
-    sample_rate, samples = wavfile.read('%s.wav' %musica)
+    try:
+        sample_rate, samples = wavfile.read('%s.wav' %musica)
+    except FileNotFoundError:
+        print("Arquivo não encontrado.\n")
+        return None
 
     frequencies, times, spectogram = spectrogram(samples, sample_rate)
 
@@ -96,7 +103,7 @@ def apagar_musicas():
     """Apaga as musicas de formato .wav na pasta atual"""
 
     for file in os.listdir(os.getcwd()):
-        if (file.endswith(".wav")) or (file.endswith(".mp4")) or (file.endswith(".flac")):
+        if (file.endswith(".wav")) or (file.endswith(".mp3")) or (file.endswith(".flac")):
             os.remove(file)
 
 def criar_dataframe():
@@ -105,7 +112,7 @@ def criar_dataframe():
     cursor.execute('SELECT * FROM musicas')
     tabela_musicas = pd.DataFrame(cursor.fetchall(),
                                   columns=["Músicas", "Valores"])
-    return tabela_musicas.sort_values(["Músicas"])
+    return tabela_musicas
 
 def criar_banco_musica():
     """Le todas as músicas na pasta atual e guarda o valor de cada uma"""
@@ -124,9 +131,9 @@ def buscar_musica(musica_procurar):
     cursor.execute('SELECT * FROM musicas')
     for linha in cursor.fetchall():
         if linha[0] == musica_procurar:
-            print("Música encontrada: %s" %musica_procurar)
+            print("Música encontrada: %s\n" %musica_procurar)
             return
-    print("Música não encontrada.")
+    print("Música não encontrada.\n")
 
 
 def recomendar_musicas(musica):
@@ -156,5 +163,29 @@ def baixar_musica(link):
                 index += 1
 
         video.download(os.getcwd())
+        print("Download concluído.\n")
 
-buscar_musica("Pink Floyd - Money")
+"""
+targets = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                  3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+                  4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+                  5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+                  6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6])
+
+dados = criar_dataframe()
+
+#0 - Rock, 1 - Indie, 2 - Pop, 3 - Blues, 4 - Jazz, 5 - Classical, 6 - MPB
+
+X_train, X_test, y_train, y_test = train_test_split(dados['Valores'], targets, random_state=3)
+
+X_train = X_train.reshape(-1, 1)
+X_test = X_test.reshape(-1, 1)
+
+knn = KNeighborsClassifier(n_neighbors=19)# 3
+
+knn.fit(X_train, y_train)
+
+print("%f" %(knn.score(X_test, y_test)*100))
+"""
