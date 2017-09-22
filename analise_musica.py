@@ -1,6 +1,6 @@
 try:
     from scipy.io import wavfile
-    from scipy.signal import spectrogram, periodogram
+    from scipy.signal import spectrogram
     import sqlite3
     import numpy as np
     import os
@@ -8,9 +8,6 @@ try:
     import subprocess
     import pandas as pd
     import pytube
-    from sklearn.model_selection import train_test_split
-    from sklearn.neighbors import KNeighborsClassifier
-    from sklearn.externals import joblib
 except ImportError as error:
     print("Import Error : %s" %error)
     quit(1)
@@ -44,16 +41,18 @@ def fechar_banco():
     cursor.close()
     conn.close()
 
-def plotar(spectogram, times, frequencies):
+def plotar_spec(spectogram, times, frequencies):
     """Plota o spectrograma da música"""
 
     spectogram = 10 * np.log10(spectogram)
 
-    try:
-        plt.pcolormesh(times, frequencies, spectogram)
-        plt.show()
-    except:
-        print("Não foi possivel plotar o gráfico.\n")
+    plt.pcolormesh(times, frequencies, spectogram)
+    plt.show()
+
+def plotar_sample(sample_rate, samples):
+
+    plt.specgram(samples, Fs=sample_rate)
+    plt.show()
 
 def analise_musica(musica):
     """Le o arquivo wav da musica e retira as informações"""
@@ -61,12 +60,10 @@ def analise_musica(musica):
     try:
         sample_rate, samples = wavfile.read('%s.wav' %musica)
     except FileNotFoundError:
-        print("Arquivo não encontrado.\n")
+        print("Arquivo não encontrado na pasta.\n")
         return None
 
     frequencies, times, spectogram = spectrogram(samples, sample_rate)
-
-    #f, pxx = periodogram(samples, sample_rate)
 
     return np.mean(spectogram)
 
@@ -135,13 +132,13 @@ def buscar_musica(musica_procurar):
             return
     print("Música não encontrada.\n")
 
-
 def recomendar_musicas(musica):
     """Recebe uma música e busca no banco de dados as mais parecidas"""
 
     ler_musica(musica, ".mp3")
     spec1 = analise_musica(musica)
-    ler_dados(spec1, musica)
+    if spec1 != None:
+        ler_dados(spec1, musica)
     apagar_musicas()
 
 def baixar_musica(link):
@@ -164,28 +161,3 @@ def baixar_musica(link):
 
         video.download(os.getcwd())
         print("Download concluído.\n")
-
-"""
-targets = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-                  3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-                  4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-                  5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-                  6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6])
-
-dados = criar_dataframe()
-
-#0 - Rock, 1 - Indie, 2 - Pop, 3 - Blues, 4 - Jazz, 5 - Classical, 6 - MPB
-
-X_train, X_test, y_train, y_test = train_test_split(dados['Valores'], targets, random_state=3)
-
-X_train = X_train.reshape(-1, 1)
-X_test = X_test.reshape(-1, 1)
-
-knn = KNeighborsClassifier(n_neighbors=19)# 3
-
-knn.fit(X_train, y_train)
-
-print("%f" %(knn.score(X_test, y_test)*100))
-"""
